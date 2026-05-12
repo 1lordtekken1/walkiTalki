@@ -1,0 +1,58 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.walkitalki'
+version = '0.1.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+}
+
+tasks.register('runUnitTests', JavaExec) {
+    group = 'verification'
+    description = 'Runs dependency-free JVM unit tests.'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.walkitalki.core.CoreTestRunner'
+    dependsOn tasks.named('testClasses')
+}
+
+tasks.named('test') {
+    dependsOn tasks.named('runUnitTests')
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('runUnitTests')
+}
+
+tasks.register('renderReadinessReport', JavaExec) {
+    group = 'documentation'
+    description = 'Renders the executable readiness scorecard Markdown report.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.walkitalki.core.simulation.ReadinessReportWriter'
+    args layout.buildDirectory.file('reports/readiness-scorecard.md').get().asFile.absolutePath
+    dependsOn tasks.named('classes')
+}
+
+tasks.register('renderSimulationScenarioReport', JavaExec) {
+    group = 'documentation'
+    description = 'Renders the executable 100-scenario simulation catalog Markdown report.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.walkitalki.core.simulation.SimulationScenarioReportWriter'
+    args layout.buildDirectory.file('reports/simulation-scenarios.md').get().asFile.absolutePath
+    dependsOn tasks.named('classes')
+}
+
+tasks.register('renderMvpGateReport', JavaExec) {
+    group = 'documentation'
+    description = 'Renders the executable MVP GO/NO-GO gate Markdown report.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.walkitalki.core.simulation.MvpGateReportWriter'
+    args layout.buildDirectory.file('reports/mvp-gate.md').get().asFile.absolutePath
+    dependsOn tasks.named('classes')
+}
