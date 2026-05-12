@@ -1,0 +1,30 @@
+plugins {
+    id 'com.android.application' version '8.7.3'
+}
+
+group = 'com.walkitalki'
+version = '0.1.0-SNAPSHOT'
+
+android {
+    namespace 'com.walkitalki.app'
+    compileSdk 35
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    defaultConfig {
+        applicationId 'com.walkitalki.app'
+        minSdk 23
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+        testInstrumentationRunner 'android.test.InstrumentationTestRunner'
+    }
+}
+
+dependencies {
+    implementation project(':core')
+    testImplementation 'junit:junit:4.13.2'
+}

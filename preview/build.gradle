@@ -1,0 +1,44 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.walkitalki'
+version = '0.1.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+}
+
+dependencies {
+    implementation project(':core')
+}
+
+tasks.register('runPreviewTests', JavaExec) {
+    group = 'verification'
+    description = 'Runs dependency-free browser preview checks.'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.walkitalki.preview.PreviewTestRunner'
+    dependsOn tasks.named('testClasses')
+}
+
+tasks.named('test') {
+    dependsOn tasks.named('runPreviewTests')
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('runPreviewTests')
+}
+
+tasks.register('renderTalkScreenPreview', JavaExec) {
+    group = 'documentation'
+    description = 'Renders the static browser talk-screen preview HTML.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.walkitalki.preview.TalkScreenPreviewWriter'
+    args layout.buildDirectory.file('reports/talk-screen-preview.html').get().asFile.absolutePath
+    dependsOn tasks.named('classes')
+}
