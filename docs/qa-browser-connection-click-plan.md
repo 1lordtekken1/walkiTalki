@@ -74,8 +74,3 @@ MVP constraint: no mode may enable automatic reconnect without explicit user act
 - Android UI must read operation mode policy instead of hardcoding scan/heartbeat/jitter values.
 - Bluetooth data-slice tests must emit connection health events compatible with `ConnectionHealthMonitor`.
 - Browser/design-preview tests must assert the click budgets above.
-
-
-## Preview automation audit
-
-Run `./gradlew :preview:renderTalkScreenPreviewAudit --no-daemon` to produce `preview/build/reports/talk-screen-preview-audit.md`. The audit checks required MVP states, stable automation hooks, click-budget metadata, and privacy-safe diagnostics before a browser/Android visual-baseline runner is available.

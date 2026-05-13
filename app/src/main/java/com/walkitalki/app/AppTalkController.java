@@ -6,16 +6,12 @@ import com.walkitalki.core.domain.PttState;
 import com.walkitalki.core.permissions.PermissionAction;
 import com.walkitalki.core.ui.TalkScreenPresenter;
 import com.walkitalki.core.ui.TalkScreenState;
-import java.util.ArrayList;
-import java.util.List;
 
 public final class AppTalkController {
     private PttState pttState;
-    private final List<String> timelineSignals = new ArrayList<>();
 
     private AppTalkController(PttState initialState) {
         this.pttState = initialState;
-        recordCurrentSignal();
     }
 
     public static AppTalkController createReadyController() {
@@ -45,46 +41,20 @@ public final class AppTalkController {
     public void advanceSetupStep() {
         if (pttState == PttState.IDLE) {
             pttState = PttState.SCANNING;
-            recordCurrentSignal();
         } else if (pttState == PttState.SCANNING) {
             pttState = PttState.CONNECTED;
-            recordCurrentSignal();
         }
     }
 
     public void pressPushToTalk() {
         if (pttState == PttState.CONNECTED) {
             pttState = PttState.TRANSMITTING;
-            recordCurrentSignal();
         }
     }
 
     public void releasePushToTalk() {
         if (pttState == PttState.TRANSMITTING) {
             pttState = PttState.CONNECTED;
-            recordCurrentSignal();
-        }
-    }
-
-    public void recordLifecycleStart() {
-        recordSignal("ui_lifecycle:start:" + currentCopy().diagnosticsSignal());
-    }
-
-    public void recordLifecycleStop() {
-        recordSignal("ui_lifecycle:stop:" + currentCopy().diagnosticsSignal());
-    }
-
-    public AppDiagnosticsReport supportReport() {
-        return new AppDiagnosticsReport(timelineSignals, currentCopy());
-    }
-
-    private void recordCurrentSignal() {
-        recordSignal(currentCopy().diagnosticsSignal());
-    }
-
-    private void recordSignal(String signal) {
-        if (timelineSignals.isEmpty() || !timelineSignals.get(timelineSignals.size() - 1).equals(signal)) {
-            timelineSignals.add(signal);
         }
     }
 }

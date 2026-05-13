@@ -1,9 +1,5 @@
 package com.walkitalki.preview;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
 public final class PreviewTestRunner {
     public static void main(String[] args) {
         previewPageRendersCoreTalkStates();
@@ -12,11 +8,6 @@ public final class PreviewTestRunner {
         previewPageExposesStableAutomationHooks();
         previewPageKeepsDiagnosticsAndSensitiveDataOutOfMarkup();
         previewPageExposesClickBudgetFailureForQa();
-        previewAutomationAuditPassesForDefaultScenarios();
-        previewAutomationAuditMarkdownIsCiFriendlyAndPrivacySafe();
-        previewAutomationAuditWriterCreatesCiArtifact();
-        previewVisualBaselineManifestIsDeterministicAndPrivacySafe();
-        previewVisualBaselineWriterCreatesCiArtifact();
         System.out.println("Preview unit tests passed");
     }
 
@@ -83,85 +74,9 @@ public final class PreviewTestRunner {
         assertContains(html, "Rollback if connect-to-talk needs more than 3 actions", "rollback trigger visible");
     }
 
-    private static void previewAutomationAuditPassesForDefaultScenarios() {
-        PreviewAutomationAudit.Report report = PreviewAutomationAudit.auditDefaultScenarios();
-
-        assertTrue(report.passed(), "default preview automation audit should pass");
-        assertEquals(9, report.scenarioCount(), "default scenario count");
-        assertEquals(0, report.missingRequiredStates().size(), "required states missing count");
-        assertEquals(0, report.privacyViolations().size(), "privacy violation count");
-        assertContains(report.renderMarkdown(), "requiredStates=PASS", "audit required states markdown");
-        assertContains(report.renderMarkdown(), "privacy=PASS", "audit privacy markdown");
-    }
-
-    private static void previewAutomationAuditMarkdownIsCiFriendlyAndPrivacySafe() {
-        String markdown = PreviewAutomationAudit.auditDefaultScenarios().renderMarkdown();
-
-        assertContains(markdown, "# Talk screen preview automation audit", "audit title");
-        assertContains(markdown, "automationHooks=PASS", "audit hook status");
-        assertContains(markdown, "clickBudget=PASS", "audit click budget status");
-        assertFalse(markdown.toLowerCase().contains("aa:bb"), "audit markdown must not expose MAC addresses");
-        assertFalse(markdown.toLowerCase().contains("audio payload"), "audit markdown must not expose raw audio payload text");
-    }
-
-    private static void previewAutomationAuditWriterCreatesCiArtifact() {
-        try {
-            Path output = Files.createTempFile("walkitalki-preview-audit", ".md");
-            PreviewAutomationAuditWriter.main(new String[] {output.toString()});
-            String markdown = Files.readString(output);
-
-            assertContains(markdown, "# Talk screen preview automation audit", "preview audit artifact title");
-            assertContains(markdown, "result=PASS", "preview audit artifact result");
-            assertContains(markdown, "scenarioCount=9", "preview audit artifact scenario count");
-        } catch (IOException exception) {
-            throw new AssertionError("preview automation audit writer should create an artifact", exception);
-        }
-    }
-
-    private static void previewVisualBaselineManifestIsDeterministicAndPrivacySafe() {
-        PreviewVisualBaseline.Manifest manifest = PreviewVisualBaseline.captureDefaultScenarios();
-        String markdown = manifest.renderMarkdown();
-
-        assertEquals(9, manifest.scenarioCount(), "visual baseline scenario count");
-        assertEquals(64, manifest.sha256().length(), "visual baseline sha length");
-        assertContains(markdown, "# Talk screen visual baseline", "visual baseline title");
-        assertContains(markdown, "previewSchema=talk-screen-v1", "visual baseline schema");
-        assertContains(markdown, "audit=PASS", "visual baseline audit status");
-        assertContains(markdown, "scenarioIds=permission-blocked,scanning,connecting,ready-to-talk,transmitting,receiving,busy,bluetooth-blocked,disconnected-over-budget", "visual baseline scenario ids");
-        assertFalse(markdown.contains("AA:BB:CC:DD:EE:FF"), "visual baseline must not include raw MAC addresses");
-        assertFalse(markdown.contains("Alice Personal Phone"), "visual baseline must not include device names");
-        assertFalse(markdown.contains("11, 12, 13"), "visual baseline must not include audio payload bytes");
-    }
-
-    private static void previewVisualBaselineWriterCreatesCiArtifact() {
-        try {
-            Path output = Files.createTempFile("walkitalki-preview-visual-baseline", ".md");
-            PreviewVisualBaselineWriter.main(new String[] {output.toString()});
-            String markdown = Files.readString(output);
-
-            assertContains(markdown, "# Talk screen visual baseline", "visual baseline artifact title");
-            assertContains(markdown, "audit=PASS", "visual baseline artifact audit");
-            assertContains(markdown, "scenarioCount=9", "visual baseline artifact scenario count");
-        } catch (IOException exception) {
-            throw new AssertionError("preview visual baseline writer should create an artifact", exception);
-        }
-    }
-
     private static void assertContains(String actual, String expectedPart, String label) {
         if (!actual.contains(expectedPart)) {
             throw new AssertionError(label + ": expected to contain " + expectedPart + " in " + actual);
-        }
-    }
-
-    private static void assertEquals(int expected, int actual, String label) {
-        if (expected != actual) {
-            throw new AssertionError(label + ": expected " + expected + " but was " + actual);
-        }
-    }
-
-    private static void assertTrue(boolean condition, String label) {
-        if (!condition) {
-            throw new AssertionError(label);
         }
     }
 

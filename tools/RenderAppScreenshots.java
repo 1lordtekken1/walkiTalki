@@ -109,13 +109,7 @@ public final class RenderAppScreenshots {
         try (PrintWriter writer = new PrintWriter(new FileWriter(new File(outputDirectory, "README.md")))) {
             writer.println("# walkiTalki app screenshots");
             writer.println();
-            writer.println("PNG screenshots are generated locally from `AppScreenshotCatalog`, which uses `AppTalkController` and `TalkScreenPresenter` state rather than hard-coded renderer-only copy. The generated PNG files are ignored by Git by default; this README embeds them when they are present locally so reviewers can inspect element placement after running the renderer.");
-            writer.println();
-            writer.println("Generate them with:");
-            writer.println();
-            writer.println("```bash");
-            writer.println("ANDROID_HOME=/opt/android-sdk ./gradlew renderAppScreenshots --no-daemon");
-            writer.println("```");
+            writer.println("These screenshots are generated from `AppScreenshotCatalog`, which uses `AppTalkController` and `TalkScreenPresenter` state rather than hard-coded renderer-only copy.");
             writer.println();
             writer.println("| State | Image | Diagnostics signal |");
             writer.println("| --- | --- | --- |");

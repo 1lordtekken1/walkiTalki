@@ -9,36 +9,38 @@ import android.view.MotionEvent;
 import android.view.View;
 
 public final class WalkiTalkiStatusView extends View {
-    private final AppTalkViewModel viewModel;
+    private final AppTalkController controller;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     public WalkiTalkiStatusView(Context context, AppUiCopy copy) {
-        this(context, AppTalkViewModel.createReadyModel());
+        this(context, AppTalkController.createReadyController());
     }
 
     public WalkiTalkiStatusView(Context context, AppTalkController controller) {
-        this(context, AppTalkViewModel.fromController(controller));
-    }
-
-    public WalkiTalkiStatusView(Context context, AppTalkViewModel viewModel) {
         super(context);
-        this.viewModel = viewModel;
-        updateContentDescription(viewModel.state());
+        this.controller = controller;
+        updateContentDescription(controller.currentCopy());
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        AppTalkRenderModel model = AppTalkUiRenderer.render(viewModel);
+        AppUiCopy copy = controller.currentCopy();
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-            viewModel.onIntent(model.pressIntent());
-            updateContentDescription(viewModel.state());
-            invalidate();
+            if (copy.pushToTalkEnabled()) {
+                controller.pressPushToTalk();
+                updateContentDescription(controller.currentCopy());
+                invalidate();
+            }
             return true;
         }
         if (event.getActionMasked() == MotionEvent.ACTION_UP
                 || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
-            viewModel.onIntent(model.releaseIntent());
-            updateContentDescription(viewModel.state());
+            if (controller.currentCopy().transmitting()) {
+                controller.releasePushToTalk();
+            } else if (!copy.pushToTalkEnabled()) {
+                controller.advanceSetupStep();
+            }
+            updateContentDescription(controller.currentCopy());
             invalidate();
             return true;
         }
@@ -48,7 +50,7 @@ public final class WalkiTalkiStatusView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        AppUiCopy copy = viewModel.state();
+        AppUiCopy copy = controller.currentCopy();
         float width = getWidth();
         float height = getHeight();
         canvas.drawColor(Color.rgb(15, 23, 42));
@@ -87,7 +89,7 @@ public final class WalkiTalkiStatusView extends View {
     }
 
     private void updateContentDescription(AppUiCopy copy) {
-        setContentDescription(AppTalkUiRenderer.render(copy).contentDescription());
+        setContentDescription(copy.title() + ": " + copy.status() + ". " + copy.primaryAction());
     }
 
     private void centerText(Canvas canvas, String text, float centerX, float baselineY) {

@@ -32,26 +32,10 @@ import com.walkitalki.core.simulation.ReadinessScore;
 import com.walkitalki.core.simulation.ReadinessScorecard;
 import com.walkitalki.core.simulation.ReadinessReportRenderer;
 import com.walkitalki.core.simulation.ReadinessReportWriter;
-import com.walkitalki.core.simulation.StakeholderRedTeamReview;
-import com.walkitalki.core.simulation.StakeholderRedTeamFinding;
-import com.walkitalki.core.simulation.StakeholderRedTeamReviewWriter;
 import com.walkitalki.core.simulation.MvpGateDecision;
 import com.walkitalki.core.simulation.MvpGateEvaluator;
 import com.walkitalki.core.simulation.MvpGateReportRenderer;
 import com.walkitalki.core.simulation.MvpGateReportWriter;
-import com.walkitalki.core.simulation.MvpProgressGate;
-import com.walkitalki.core.simulation.MvpProgressStatus;
-import com.walkitalki.core.simulation.MvpProgressTracker;
-import com.walkitalki.core.simulation.MvpProgressReportRenderer;
-import com.walkitalki.core.simulation.MvpProgressReportWriter;
-import com.walkitalki.core.simulation.PingPongStabilityPlan;
-import com.walkitalki.core.simulation.PingPongStabilityScenario;
-import com.walkitalki.core.simulation.PingPongStabilityStatus;
-import com.walkitalki.core.simulation.PingPongStabilityPlanWriter;
-import com.walkitalki.core.simulation.ReleaseChecklist;
-import com.walkitalki.core.simulation.ReleaseChecklistItem;
-import com.walkitalki.core.simulation.ReleaseChecklistStatus;
-import com.walkitalki.core.simulation.ReleaseChecklistWriter;
 import com.walkitalki.core.simulation.UserJourney;
 import com.walkitalki.core.simulation.UserJourneyResult;
 import com.walkitalki.core.session.WalkieTalkieSessionController;
@@ -61,7 +45,6 @@ import com.walkitalki.core.transport.VoiceTransport;
 import com.walkitalki.core.transport.TransportSessionResult;
 import com.walkitalki.core.transport.TransportHeartbeatController;
 import com.walkitalki.core.transport.StreamVoiceTransport;
-import com.walkitalki.core.transport.ClassicBluetoothStreamAdapter;
 import com.walkitalki.core.transport.PeerDiscoveryController;
 import com.walkitalki.core.transport.PeerDiscoverySnapshot;
 import com.walkitalki.core.ui.TalkScreenPresenter;
@@ -146,8 +129,6 @@ public final class CoreTestRunner {
         streamVoiceTransportWritesPingFrameToOutputStream();
         streamVoiceTransportReadsPongAndAudioMetadataWithoutPayloadInTimeline();
         streamVoiceTransportMapsWriteFailureToSendFailure();
-        classicBluetoothStreamAdapterWrapsSocketStreamsBehindVoiceTransport();
-        classicBluetoothStreamAdapterRedactsPeerIdentifiersInDiagnostics();
         pttAudioControllerStartsCaptureOnlyWhenConnectedAndSendsFrames();
         pttAudioControllerRoutesRemoteFramesThroughJitterWithoutPayloadDiagnostics();
         pttAudioControllerDoesNotCaptureWhenRemoteTalkingBusy();
@@ -159,22 +140,12 @@ public final class CoreTestRunner {
         simulationCatalogCoversOneHundredStakeholderScenarios();
         simulationScenarioReportExportsCatalogForQa();
         simulationScenarioReportWriterCreatesCiArtifact();
-        mvpProgressTrackerKeepsRoadmapStatusExecutable();
-        mvpProgressReportExportsCurrentGateStatus();
-        mvpProgressReportWriterCreatesCiArtifact();
-        mvpProgressDocsMirrorExecutableTracker();
         readinessScorecardKeepsStakeholderAndModulePathsExecutable();
         readinessReportRendererExportsScorecardAndGates();
         readinessReportWriterCreatesCiArtifact();
         mvpGateStaysNoGoUntilAndroidAndDeviceEvidenceExist();
         mvpGateReportExportsNoGoDecisionForStakeholders();
         mvpGateReportWriterCreatesCiArtifact();
-        releaseChecklistKeepsMvpNoGoWithAcceptanceRollbackAndDiagnostics();
-        releaseChecklistWriterCreatesPrivacySafeCiArtifact();
-        pingPongStabilityPlanBlocksUntilPhysicalMatrixPasses();
-        pingPongStabilityPlanWriterCreatesPrivacySafeCiArtifact();
-        stakeholderRedTeamReviewAttacksEveryStakeholderAndKeepsNoGo();
-        stakeholderRedTeamReviewWriterCreatesPrivacySafeCiArtifact();
         architectureGuardKeepsCoreAndPreviewFrameworkFree();
         System.out.println("Core unit tests passed");
     }
@@ -926,42 +897,6 @@ public final class CoreTestRunner {
         assertContains(result.timeline(), "write_failed:socket closed", "write failure reason timeline");
     }
 
-    private static void classicBluetoothStreamAdapterWrapsSocketStreamsBehindVoiceTransport() {
-        ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
-        java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
-        ClassicBluetoothStreamAdapter adapter = ClassicBluetoothStreamAdapter.connected(
-            input,
-            output,
-            1_000L,
-            OperationModePolicy.forMode(OperationMode.BALANCED),
-            "AA:BB:CC:DD:EE:FF"
-        );
-
-        adapter.transport().sendPing(7L, 1_250L);
-        ProtocolFrame written = ProtocolFrameCodec.decode(output.toByteArray());
-
-        assertEquals(FrameType.PING, written.type(), "classic adapter writes ping through stream transport");
-        assertEquals(7L, written.sequenceNumber(), "classic adapter ping sequence");
-        assertEquals(1L, adapter.snapshotAt(1_250L).framesSent(), "classic adapter frames sent");
-        assertContains(adapter.diagnosticsSignal(), "classic_stream:connected", "classic adapter diagnostics signal");
-    }
-
-    private static void classicBluetoothStreamAdapterRedactsPeerIdentifiersInDiagnostics() {
-        ClassicBluetoothStreamAdapter adapter = ClassicBluetoothStreamAdapter.connected(
-            new ByteArrayInputStream(new byte[0]),
-            new java.io.ByteArrayOutputStream(),
-            2_000L,
-            OperationModePolicy.forMode(OperationMode.BALANCED),
-            "Alice Personal Phone AA:BB:CC:DD:EE:FF"
-        );
-
-        String exported = adapter.diagnosticsSignal() + "\n" + adapter.snapshotAt(2_000L).timeline();
-
-        assertContains(exported, "peerHash=", "classic adapter keeps redacted peer correlation");
-        assertFalse(exported.contains("Alice Personal Phone"), "classic adapter diagnostics must not expose device names");
-        assertFalse(exported.contains("AA:BB:CC:DD:EE:FF"), "classic adapter diagnostics must not expose MAC addresses");
-    }
-
     private static void pttAudioControllerStartsCaptureOnlyWhenConnectedAndSendsFrames() {
         FakeAudioInput input = FakeAudioInput.withFrames(
             AudioFrame.pcm(1L, 1_000L, new byte[] {1}),
@@ -1237,61 +1172,6 @@ public final class CoreTestRunner {
         }
     }
 
-    private static void mvpProgressTrackerKeepsRoadmapStatusExecutable() {
-        List<MvpProgressGate> gates = MvpProgressTracker.gates();
-
-        assertEquals(8, gates.size(), "MVP progress gate count");
-        assertEquals(1, gates.get(0).number(), "first gate number");
-        assertEquals(8, gates.get(7).number(), "last gate number");
-        assertTrue(gates.stream().anyMatch(gate -> gate.number() == 1 && gate.status() == MvpProgressStatus.PARTIAL), "gate 1 is partial after debug app shell");
-        assertTrue(gates.stream().anyMatch(gate -> gate.number() == 1 && gate.currentEvidence().contains("lifecycle hooks")), "gate 1 records lifecycle wiring evidence");
-        assertTrue(gates.stream().anyMatch(gate -> gate.number() == 2 && gate.status() == MvpProgressStatus.PARTIAL), "gate 2 is partial after UI intent adapter");
-        assertTrue(gates.stream().anyMatch(gate -> gate.number() == 2 && gate.currentEvidence().contains("lifecycle-safe ViewModel")), "gate 2 records lifecycle-safe ViewModel evidence");
-        assertTrue(gates.stream().anyMatch(gate -> gate.number() == 4 && gate.status() == MvpProgressStatus.PARTIAL), "gate 4 is partial after permission adapter");
-        assertTrue(gates.stream().anyMatch(gate -> gate.number() == 5 && gate.status() == MvpProgressStatus.PARTIAL), "Bluetooth Classic wrapper has a stream adapter seam");
-        assertEquals(6, MvpProgressTracker.openMajorGateCount(), "remaining major gates stay executable");
-        assertTrue(MvpProgressTracker.summary().contains("6 major"), "summary names current remaining count");
-        assertTrue(gates.stream().allMatch(gate -> !gate.nextAction().isBlank()), "each gate has next action");
-    }
-
-    private static void mvpProgressReportExportsCurrentGateStatus() {
-        String report = MvpProgressReportRenderer.renderMarkdown();
-
-        assertContains(report, "# MVP progress tracker", "MVP progress report title");
-        assertContains(report, "Open major gates: 6", "MVP progress report count");
-        assertContains(report, "| 4 | Android Bluetooth permission and environment adapter | PARTIAL |", "MVP progress report gate 4 status");
-        assertContains(report, "instrumented API-version grant/deny validation", "MVP progress report gate 4 next action");
-        assertContains(report, "| 5 | Bluetooth Classic wrapper around StreamVoiceTransport | PARTIAL |", "MVP progress report gate 5 status");
-    }
-
-    private static void mvpProgressReportWriterCreatesCiArtifact() {
-        try {
-            Path output = Files.createTempFile("walkitalki-mvp-progress", ".md");
-            MvpProgressReportWriter.main(new String[] {output.toString()});
-            String report = Files.readString(output);
-
-            assertContains(report, "# MVP progress tracker", "MVP progress artifact title");
-            assertContains(report, "Open major gates: 6", "MVP progress artifact count");
-            assertContains(report, "Android Bluetooth permission and environment adapter", "MVP progress artifact gate 4");
-        } catch (IOException exception) {
-            throw new AssertionError("MVP progress report writer should create an artifact", exception);
-        }
-    }
-
-    private static void mvpProgressDocsMirrorExecutableTracker() {
-        try {
-            String docs = Files.readString(findRepositoryRoot().resolve("docs/mvp-progress.md"));
-
-            assertContains(docs, "Open major gates: **6**", "MVP progress docs include current count");
-            for (MvpProgressGate gate : MvpProgressTracker.gates()) {
-                String rowPrefix = "| " + gate.number() + " | " + gate.title() + " | " + gate.status() + " |";
-                assertContains(docs, rowPrefix, "MVP progress docs mirror gate " + gate.number());
-            }
-        } catch (IOException exception) {
-            throw new AssertionError("MVP progress docs should mirror executable tracker", exception);
-        }
-    }
-
     private static void readinessScorecardKeepsStakeholderAndModulePathsExecutable() {
         List<ReadinessScore> modules = ReadinessScorecard.modules();
         List<ReadinessScore> stakeholders = ReadinessScorecard.stakeholders();
@@ -1300,7 +1180,7 @@ public final class CoreTestRunner {
         assertEquals(10, stakeholders.size(), "stakeholder readiness score count");
         assertTrue(modules.stream().allMatch(score -> score.score() >= 0 && score.score() <= 100), "module scores stay in 0..100");
         assertTrue(stakeholders.stream().allMatch(score -> score.score() >= 0 && score.score() <= 100), "stakeholder scores stay in 0..100");
-        assertTrue(modules.stream().anyMatch(score -> score.name().equals("Android app module") && score.score() >= 35), "Android app module score reflects the checked-in debug shell and manifest");
+        assertTrue(modules.stream().anyMatch(score -> score.name().equals("Android app module") && score.score() == 0), "Android app module is honestly scored zero until it exists");
         assertTrue(stakeholders.stream().anyMatch(score -> score.name().equals("Privacy/security") && score.score() >= 70), "privacy stakeholder readiness reflects redaction coverage");
         assertTrue(modules.stream().allMatch(score -> !score.pathTo100().isBlank()), "each module score has path to 100");
         assertTrue(stakeholders.stream().allMatch(score -> !score.pathTo100().isBlank()), "each stakeholder score has path to 100");
@@ -1311,7 +1191,7 @@ public final class CoreTestRunner {
         String report = ReadinessReportRenderer.renderMarkdown();
 
         assertContains(report, "# Executable readiness scorecard", "readiness report title");
-        assertContains(report, "| Android app module | 42 |", "readiness report includes updated Android app render seam score");
+        assertContains(report, "| Android app module | 0 |", "readiness report includes honest Android app score");
         assertContains(report, "| Privacy/security | 70 |", "readiness report includes privacy stakeholder score");
         assertContains(report, "not yet an Android MVP", "readiness report includes MVP honesty statement");
         assertContains(report, "## Top blockers", "readiness report includes blocker section");
@@ -1371,111 +1251,6 @@ public final class CoreTestRunner {
         }
     }
 
-    private static void releaseChecklistKeepsMvpNoGoWithAcceptanceRollbackAndDiagnostics() {
-        ReleaseChecklist checklist = ReleaseChecklist.current();
-        String markdown = checklist.renderMarkdown();
-
-        assertEquals(ReleaseChecklistStatus.NO_GO, checklist.status(), "release checklist status before physical evidence");
-        assertTrue(checklist.items().size() >= 6, "release checklist covers multiple release gates");
-        assertTrue(checklist.items().stream().anyMatch(item -> item.name().equals("Two-device PTT smoke test") && item.status() == ReleaseChecklistStatus.NO_GO), "release checklist blocks missing two-device smoke");
-        assertTrue(checklist.items().stream().anyMatch(item -> item.name().equals("Privacy-safe support export") && item.diagnosticsSignal().contains("support_export")), "release checklist includes support export diagnostics");
-        assertTrue(checklist.items().stream().allMatch(item -> !item.acceptanceCriteria().isBlank()), "each release item has acceptance criteria");
-        assertTrue(checklist.items().stream().allMatch(item -> !item.rollbackTrigger().isBlank()), "each release item has rollback trigger");
-        assertTrue(checklist.items().stream().allMatch(item -> !item.diagnosticsSignal().isBlank()), "each release item has diagnostics signal");
-        assertContains(markdown, "# MVP release checklist", "release checklist title");
-        assertContains(markdown, "Status: NO_GO", "release checklist status markdown");
-        assertContains(markdown, "Two-device PTT smoke test", "release checklist smoke item");
-        assertContains(markdown, "Rollback", "release checklist rollback column");
-        assertFalse(markdown.contains("AA:BB:CC:DD:EE:FF"), "release checklist must not include raw MAC addresses");
-        assertFalse(markdown.contains("Alice Personal Phone"), "release checklist must not include device names");
-        assertFalse(markdown.contains("11, 12, 13"), "release checklist must not include audio payload bytes");
-    }
-
-    private static void releaseChecklistWriterCreatesPrivacySafeCiArtifact() {
-        try {
-            Path output = Files.createTempFile("walkitalki-release-checklist", ".md");
-            ReleaseChecklistWriter.main(new String[] {output.toString()});
-            String markdown = Files.readString(output);
-
-            assertContains(markdown, "# MVP release checklist", "release checklist artifact title");
-            assertContains(markdown, "Status: NO_GO", "release checklist artifact status");
-            assertContains(markdown, "support_export", "release checklist artifact support diagnostics");
-            assertFalse(markdown.toLowerCase().contains("raw peer"), "release checklist artifact must not expose raw peer wording as export content");
-        } catch (IOException exception) {
-            throw new AssertionError("release checklist writer should create an artifact", exception);
-        }
-    }
-
-    private static void pingPongStabilityPlanBlocksUntilPhysicalMatrixPasses() {
-        PingPongStabilityPlan plan = PingPongStabilityPlan.current();
-        String markdown = plan.renderMarkdown();
-
-        assertEquals(PingPongStabilityStatus.BLOCKED, plan.status(), "ping/pong stability status before physical matrix");
-        assertTrue(plan.scenarios().size() >= 4, "ping/pong plan covers matrix scenarios");
-        assertTrue(plan.scenarios().stream().anyMatch(scenario -> scenario.name().equals("Sustained two-device exchange") && scenario.status() == PingPongStabilityStatus.BLOCKED), "ping/pong plan blocks sustained physical exchange");
-        assertTrue(plan.scenarios().stream().anyMatch(scenario -> scenario.name().equals("Weak-signal recovery") && scenario.rollbackTrigger().contains("false stable")), "ping/pong plan covers weak-signal rollback");
-        assertTrue(plan.scenarios().stream().allMatch(scenario -> !scenario.acceptanceCriteria().isBlank()), "each ping/pong scenario has acceptance criteria");
-        assertTrue(plan.scenarios().stream().allMatch(scenario -> !scenario.diagnosticsSignal().isBlank()), "each ping/pong scenario has diagnostics signal");
-        assertContains(markdown, "# Two-device PING/PONG stability plan", "ping/pong plan title");
-        assertContains(markdown, "Status: BLOCKED", "ping/pong plan status markdown");
-        assertContains(markdown, "heartbeat", "ping/pong plan heartbeat diagnostics");
-        assertContains(markdown, "disconnect", "ping/pong plan disconnect scenario");
-        assertFalse(markdown.contains("AA:BB:CC:DD:EE:FF"), "ping/pong plan must not include raw MAC addresses");
-        assertFalse(markdown.contains("Alice Personal Phone"), "ping/pong plan must not include device names");
-        assertFalse(markdown.contains("11, 12, 13"), "ping/pong plan must not include audio payload bytes");
-    }
-
-    private static void pingPongStabilityPlanWriterCreatesPrivacySafeCiArtifact() {
-        try {
-            Path output = Files.createTempFile("walkitalki-ping-pong-stability", ".md");
-            PingPongStabilityPlanWriter.main(new String[] {output.toString()});
-            String markdown = Files.readString(output);
-
-            assertContains(markdown, "# Two-device PING/PONG stability plan", "ping/pong artifact title");
-            assertContains(markdown, "Status: BLOCKED", "ping/pong artifact status");
-            assertContains(markdown, "transport_ping_pong", "ping/pong artifact diagnostics");
-            assertFalse(markdown.toLowerCase().contains("raw peer"), "ping/pong artifact must not expose raw peer wording as export content");
-        } catch (IOException exception) {
-            throw new AssertionError("ping/pong stability writer should create an artifact", exception);
-        }
-    }
-
-    private static void stakeholderRedTeamReviewAttacksEveryStakeholderAndKeepsNoGo() {
-        StakeholderRedTeamReview review = StakeholderRedTeamReview.current();
-        String markdown = review.renderMarkdown();
-
-        assertEquals(MvpGateDecision.Status.NO_GO, review.verdict(), "stakeholder red-team verdict before physical evidence");
-        assertEquals(10, review.findings().size(), "stakeholder red-team finding count");
-        assertTrue(review.findings().stream().allMatch(finding -> finding.score() >= 0 && finding.score() <= 100), "all stakeholder scores stay 0..100");
-        assertTrue(review.findings().stream().allMatch(finding -> !finding.attack().isBlank()), "each stakeholder has attack");
-        assertTrue(review.findings().stream().allMatch(finding -> !finding.evidenceGap().isBlank()), "each stakeholder has evidence gap");
-        assertTrue(review.findings().stream().allMatch(finding -> !finding.routeTo100().isBlank()), "each stakeholder has route to 100");
-        assertTrue(review.findings().stream().anyMatch(finding -> finding.stakeholder().equals("End users") && finding.score() < 50), "end users remain below 50 without physical audio");
-        assertTrue(review.findings().stream().anyMatch(finding -> finding.stakeholder().equals("Privacy/security") && finding.score() >= 70), "privacy stakeholder reflects redaction strength");
-        assertContains(markdown, "# Stakeholder red-team review", "stakeholder red-team title");
-        assertContains(markdown, "Verdict: NO_GO", "stakeholder red-team verdict markdown");
-        assertContains(markdown, "Independent check", "stakeholder red-team independent check section");
-        assertContains(markdown, "Route to 100", "stakeholder red-team route column");
-        assertFalse(markdown.contains("AA:BB:CC:DD:EE:FF"), "stakeholder red-team must not include raw MAC addresses");
-        assertFalse(markdown.contains("Alice Personal Phone"), "stakeholder red-team must not include device names");
-        assertFalse(markdown.contains("11, 12, 13"), "stakeholder red-team must not include audio payload bytes");
-    }
-
-    private static void stakeholderRedTeamReviewWriterCreatesPrivacySafeCiArtifact() {
-        try {
-            Path output = Files.createTempFile("walkitalki-stakeholder-red-team", ".md");
-            StakeholderRedTeamReviewWriter.main(new String[] {output.toString()});
-            String markdown = Files.readString(output);
-
-            assertContains(markdown, "# Stakeholder red-team review", "stakeholder red-team artifact title");
-            assertContains(markdown, "Verdict: NO_GO", "stakeholder red-team artifact verdict");
-            assertContains(markdown, "Physical-device evidence", "stakeholder red-team artifact physical evidence gap");
-            assertFalse(markdown.toLowerCase().contains("raw peer"), "stakeholder red-team artifact must not expose raw peer wording as export content");
-        } catch (IOException exception) {
-            throw new AssertionError("stakeholder red-team writer should create an artifact", exception);
-        }
-    }
-
     private static void architectureGuardKeepsCoreAndPreviewFrameworkFree() {
         ArchitectureGuard.Report report = ArchitectureGuard.scanRepository();
 
@@ -1524,18 +1299,6 @@ public final class CoreTestRunner {
         if (!condition) {
             throw new AssertionError(label);
         }
-    }
-
-
-    private static Path findRepositoryRoot() {
-        Path current = Path.of("").toAbsolutePath().normalize();
-        while (current != null) {
-            if (Files.exists(current.resolve("settings.gradle"))) {
-                return current;
-            }
-            current = current.getParent();
-        }
-        throw new IllegalStateException("Could not find repository root containing settings.gradle");
     }
 
     private static void assertEquals(Object expected, Object actual, String label) {

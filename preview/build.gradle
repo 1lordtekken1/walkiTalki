@@ -42,22 +42,3 @@ tasks.register('renderTalkScreenPreview', JavaExec) {
     args layout.buildDirectory.file('reports/talk-screen-preview.html').get().asFile.absolutePath
     dependsOn tasks.named('classes')
 }
-
-tasks.register('renderTalkScreenPreviewAudit', JavaExec) {
-    group = 'verification'
-    description = 'Renders the talk-screen preview automation audit Markdown report.'
-    classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.walkitalki.preview.PreviewAutomationAuditWriter'
-    args layout.buildDirectory.file('reports/talk-screen-preview-audit.md').get().asFile.absolutePath
-    dependsOn tasks.named('classes')
-}
-
-
-tasks.register('renderTalkScreenVisualBaseline', JavaExec) {
-    group = 'verification'
-    description = 'Renders the deterministic talk-screen preview visual baseline manifest.'
-    classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.walkitalki.preview.PreviewVisualBaselineWriter'
-    args layout.buildDirectory.file('reports/talk-screen-visual-baseline.md').get().asFile.absolutePath
-    dependsOn tasks.named('classes')
-}

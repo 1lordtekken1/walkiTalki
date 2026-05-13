@@ -61,35 +61,3 @@ tasks.register('packageMvpDebugApk') {
         println "SHA-256: ${checksum}"
     }
 }
-
-tasks.register('renderMvpDebugSmokeReport') {
-    group = 'verification'
-    description = 'Runs the app MVP debug harness and writes a redacted markdown smoke report.'
-
-    def sourceFile = layout.projectDirectory.file('tools/RenderDebugSmokeReport.java')
-    def classesDir = layout.buildDirectory.dir('tools/debug-smoke-report-renderer')
-    def outputFile = layout.buildDirectory.file('reports/mvp-debug-smoke-report.md')
-    def appCompileTask = project(':app').tasks.named('compileDebugJavaWithJavac')
-    def coreJarTask = project(':core').tasks.named('jar')
-
-    inputs.file(sourceFile)
-    inputs.files(appCompileTask.map { it.destinationDirectory })
-    inputs.file(coreJarTask.map { it.archiveFile })
-    outputs.file(outputFile)
-    dependsOn appCompileTask
-    dependsOn coreJarTask
-
-    doLast {
-        def classes = classesDir.get().asFile
-        def appClasses = appCompileTask.get().destinationDirectory.get().asFile
-        def coreJar = coreJarTask.get().archiveFile.get().asFile
-        def classpath = appClasses.absolutePath + File.pathSeparator + coreJar.absolutePath
-        classes.mkdirs()
-        exec {
-            commandLine 'javac', '-cp', classpath, '-d', classes.absolutePath, sourceFile.asFile.absolutePath
-        }
-        exec {
-            commandLine 'java', '-cp', classes.absolutePath + File.pathSeparator + classpath, 'RenderDebugSmokeReport', outputFile.get().asFile.absolutePath
-        }
-    }
-}

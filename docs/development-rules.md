@@ -15,17 +15,7 @@ The default loop for every feature is:
 
 Documentation-only and build-bootstrap tasks may skip Red, but must explicitly say why.
 
-## 2. Agent communication and progress reporting
-
-For interactive development work, agents must make their workflow visible to the user:
-
-1. Answer repository-work progress updates in Russian unless the user explicitly asks for another language.
-2. Before each meaningful stage, explain what will happen next and why it is the next safe step.
-3. After each stage, report how complete that stage is as a percentage.
-4. Tie progress reports to observable work: reading instructions, writing or updating tests, making implementation changes, running checks, committing changes, and preparing the PR.
-5. If a stage is documentation-only, state why the Red step is not applicable before editing production rules or documentation.
-
-## 3. Test pyramid for this app
+## 2. Test pyramid for this app
 
 | Layer | Purpose | Default tool | Examples |
 | --- | --- | --- | --- |
@@ -35,9 +25,9 @@ For interactive development work, agents must make their workflow visible to the
 | Instrumented device tests | Real platform behavior | AndroidJUnitRunner | Bluetooth permissions, real sockets, AudioRecord/AudioTrack smoke checks |
 | Manual physical matrix | Hardware truth | test checklist + diagnostics export | Pixel/Samsung/Xiaomi/OnePlus connection and latency checks |
 
-## 4. First tests to write before app code
+## 3. First tests to write before app code
 
-### 4.1 Protocol tests
+### 3.1 Protocol tests
 
 Create tests before implementing the protocol package:
 
@@ -49,7 +39,7 @@ Create tests before implementing the protocol package:
 - preserves sequence number and monotonic sender timestamp;
 - treats unknown frame type as recoverable protocol error, not crash.
 
-### 4.2 State machine tests
+### 3.2 State machine tests
 
 Before implementing UI or Bluetooth classes, define a pure domain state machine and test:
 
@@ -61,7 +51,7 @@ Before implementing UI or Bluetooth classes, define a pure domain state machine 
 - socket failure transitions to disconnected with diagnostics event;
 - manual reconnect is allowed only after explicit user action in MVP.
 
-### 4.3 Audio-buffer tests
+### 3.3 Audio-buffer tests
 
 Before touching `AudioRecord` or `AudioTrack`, test pure buffer logic:
 
@@ -72,7 +62,7 @@ Before touching `AudioRecord` or `AudioTrack`, test pure buffer logic:
 - caps memory growth;
 - reports underrun/overrun counters.
 
-### 4.4 Permissions policy tests
+### 3.4 Permissions policy tests
 
 Before writing Android permission UI, model a pure permissions policy:
 
@@ -81,7 +71,7 @@ Before writing Android permission UI, model a pure permissions policy:
 - microphone permission is required only for transmit, not for receive-only diagnostics;
 - partial grants produce explicit next action, not a generic failure.
 
-### 4.5 Diagnostics tests
+### 3.5 Diagnostics tests
 
 Before first Bluetooth integration, test diagnostics redaction:
 
@@ -90,7 +80,7 @@ Before first Bluetooth integration, test diagnostics redaction:
 - device names are redacted by default;
 - exported diagnostics include app version, Android version, device model class, permission state, transport state transitions, counters, and error codes.
 
-## 5. Required implementation seams
+## 4. Required implementation seams
 
 Production Android classes must be wrapped behind interfaces so unit tests can use fakes:
 
@@ -103,7 +93,7 @@ Production Android classes must be wrapped behind interfaces so unit tests can u
 
 Direct calls from ViewModels or Compose code into `BluetoothAdapter`, `BluetoothSocket`, `AudioRecord`, or `AudioTrack` are forbidden.
 
-## 6. Acceptance gates by milestone
+## 5. Acceptance gates by milestone
 
 ### Milestone 0: project foundation
 
@@ -151,7 +141,7 @@ Required before Opus or transport pivot:
 - Bluetooth Classic success rate and latency are measured on the physical matrix;
 - pivot decision is documented in an ADR.
 
-## 7. Definition of done for every PR
+## 6. Definition of done for every PR
 
 A PR is not done unless it includes:
 
@@ -160,10 +150,9 @@ A PR is not done unless it includes:
 - diagnostics/observability impact;
 - privacy impact for any permission, audio, peer, or logging change;
 - updated ADR if architecture changed;
-- no new direct Android framework calls from UI/domain layers;
-- no binary artifacts in the branch unless a reviewer explicitly approves them and the PR explains why text/source alternatives are insufficient.
+- no new direct Android framework calls from UI/domain layers.
 
-## 8. Current TDD backlog
+## 7. Current TDD backlog
 
 1. Bootstrap Android Gradle project with a passing empty unit test.
 2. Add protocol package tests for frame encoding/decoding.
