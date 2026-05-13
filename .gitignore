@@ -1,0 +1,35 @@
+.gradle/
+build/
+*/build/
+local.properties
+.DS_Store
+.idea/
+*.iml
+
+# Temporary screenshots and generated visual/build artifacts
+screenshots/
+**/screenshots/*.png
+**/screenshots/*.jpg
+**/screenshots/*.jpeg
+**/screenshots/*.webp
+app-state/
+app_state/
+artifacts/
+test-results/
+playwright-report/
+cypress/screenshots/
+*.tmp.png
+*.tmp.jpg
+*.tmp.jpeg
+*.tmp.webp
+
+# Local safety backups created before history cleanup
+codex-work-before-removing-binaries.bundle
+codex-last-commit-before-removing-binaries.patch
+**/screenshots/
+*.bundle
+codex-*.patch
+
+# Binary Gradle wrapper bootstrap is intentionally excluded from branch diffs.
+# Regenerate locally with a trusted Gradle installation when needed.
+gradle/wrapper/gradle-wrapper.jar

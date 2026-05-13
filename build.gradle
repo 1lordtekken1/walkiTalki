@@ -1,0 +1,95 @@
+plugins {
+    id 'base'
+}
+
+tasks.register('renderAppScreenshots') {
+    group = 'documentation'
+    description = 'Renders reproducible PNG screenshots of the installable Android app shell from app/core state.'
+
+    def sourceFile = layout.projectDirectory.file('tools/RenderAppScreenshots.java')
+    def classesDir = layout.buildDirectory.dir('tools/app-screenshot-renderer')
+    def outputDir = layout.projectDirectory.dir('docs/screenshots')
+    def appCompileTask = project(':app').tasks.named('compileDebugJavaWithJavac')
+    def coreJarTask = project(':core').tasks.named('jar')
+
+    inputs.file(sourceFile)
+    inputs.files(appCompileTask.map { it.destinationDirectory })
+    inputs.file(coreJarTask.map { it.archiveFile })
+    outputs.dir(outputDir)
+    dependsOn appCompileTask
+    dependsOn coreJarTask
+
+    doLast {
+        def classes = classesDir.get().asFile
+        def appClasses = appCompileTask.get().destinationDirectory.get().asFile
+        def coreJar = coreJarTask.get().archiveFile.get().asFile
+        def classpath = appClasses.absolutePath + File.pathSeparator + coreJar.absolutePath
+        classes.mkdirs()
+        exec {
+            commandLine 'javac', '-cp', classpath, '-d', classes.absolutePath, sourceFile.asFile.absolutePath
+        }
+        exec {
+            commandLine 'java', '-cp', classes.absolutePath + File.pathSeparator + classpath, 'RenderAppScreenshots', outputDir.asFile.absolutePath
+        }
+    }
+}
+
+tasks.register('packageMvpDebugApk') {
+    group = 'distribution'
+    description = 'Builds the MVP debug APK and copies it to artifacts/apk for manual testing.'
+
+    def assembleTask = project(':app').tasks.named('assembleDebug')
+    def sourceApk = project(':app').layout.buildDirectory.file('outputs/apk/debug/app-debug.apk')
+    def outputDirectory = layout.projectDirectory.dir('artifacts/apk')
+    def outputApk = outputDirectory.file('walkitalki-mvp-debug.apk')
+    def checksumFile = outputDirectory.file('walkitalki-mvp-debug.apk.sha256')
+
+    dependsOn assembleTask
+    inputs.file(sourceApk)
+    outputs.file(outputApk)
+    outputs.file(checksumFile)
+
+    doLast {
+        def source = sourceApk.get().asFile
+        def target = outputApk.asFile
+        target.parentFile.mkdirs()
+        target.bytes = source.bytes
+        def digest = java.security.MessageDigest.getInstance('SHA-256')
+        def checksum = digest.digest(target.bytes).collect { String.format('%02x', it) }.join()
+        checksumFile.asFile.text = checksum + '  ' + target.name + System.lineSeparator()
+        println "MVP debug APK: ${target.absolutePath}"
+        println "SHA-256: ${checksum}"
+    }
+}
+
+tasks.register('renderMvpDebugSmokeReport') {
+    group = 'verification'
+    description = 'Runs the app MVP debug harness and writes a redacted markdown smoke report.'
+
+    def sourceFile = layout.projectDirectory.file('tools/RenderDebugSmokeReport.java')
+    def classesDir = layout.buildDirectory.dir('tools/debug-smoke-report-renderer')
+    def outputFile = layout.buildDirectory.file('reports/mvp-debug-smoke-report.md')
+    def appCompileTask = project(':app').tasks.named('compileDebugJavaWithJavac')
+    def coreJarTask = project(':core').tasks.named('jar')
+
+    inputs.file(sourceFile)
+    inputs.files(appCompileTask.map { it.destinationDirectory })
+    inputs.file(coreJarTask.map { it.archiveFile })
+    outputs.file(outputFile)
+    dependsOn appCompileTask
+    dependsOn coreJarTask
+
+    doLast {
+        def classes = classesDir.get().asFile
+        def appClasses = appCompileTask.get().destinationDirectory.get().asFile
+        def coreJar = coreJarTask.get().archiveFile.get().asFile
+        def classpath = appClasses.absolutePath + File.pathSeparator + coreJar.absolutePath
+        classes.mkdirs()
+        exec {
+            commandLine 'javac', '-cp', classpath, '-d', classes.absolutePath, sourceFile.asFile.absolutePath
+        }
+        exec {
+            commandLine 'java', '-cp', classes.absolutePath + File.pathSeparator + classpath, 'RenderDebugSmokeReport', outputFile.get().asFile.absolutePath
+        }
+    }
+}

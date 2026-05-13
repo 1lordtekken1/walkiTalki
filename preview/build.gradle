@@ -1,0 +1,63 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.walkitalki'
+version = '0.1.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+}
+
+dependencies {
+    implementation project(':core')
+}
+
+tasks.register('runPreviewTests', JavaExec) {
+    group = 'verification'
+    description = 'Runs dependency-free browser preview checks.'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.walkitalki.preview.PreviewTestRunner'
+    dependsOn tasks.named('testClasses')
+}
+
+tasks.named('test') {
+    dependsOn tasks.named('runPreviewTests')
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('runPreviewTests')
+}
+
+tasks.register('renderTalkScreenPreview', JavaExec) {
+    group = 'documentation'
+    description = 'Renders the static browser talk-screen preview HTML.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.walkitalki.preview.TalkScreenPreviewWriter'
+    args layout.buildDirectory.file('reports/talk-screen-preview.html').get().asFile.absolutePath
+    dependsOn tasks.named('classes')
+}
+
+tasks.register('renderTalkScreenPreviewAudit', JavaExec) {
+    group = 'verification'
+    description = 'Renders the talk-screen preview automation audit Markdown report.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.walkitalki.preview.PreviewAutomationAuditWriter'
+    args layout.buildDirectory.file('reports/talk-screen-preview-audit.md').get().asFile.absolutePath
+    dependsOn tasks.named('classes')
+}
+
+
+tasks.register('renderTalkScreenVisualBaseline', JavaExec) {
+    group = 'verification'
+    description = 'Renders the deterministic talk-screen preview visual baseline manifest.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.walkitalki.preview.PreviewVisualBaselineWriter'
+    args layout.buildDirectory.file('reports/talk-screen-visual-baseline.md').get().asFile.absolutePath
+    dependsOn tasks.named('classes')
+}
