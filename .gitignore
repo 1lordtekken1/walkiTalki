@@ -30,6 +30,6 @@ codex-last-commit-before-removing-binaries.patch
 *.bundle
 codex-*.patch
 
-# Binary Gradle wrapper bootstrap excluded so Codex PR diff remains text-only
+# Binary Gradle wrapper bootstrap is intentionally excluded from branch diffs.
 # Regenerate locally with a trusted Gradle installation when needed.
 gradle/wrapper/gradle-wrapper.jar

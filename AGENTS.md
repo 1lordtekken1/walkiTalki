@@ -15,6 +15,13 @@ These instructions apply to the whole repository.
 6. Every Bluetooth, audio, protocol, and permission feature must expose test seams through interfaces/fakes before it talks to Android framework classes directly.
 7. No feature is accepted without acceptance criteria, a rollback/pivot trigger, and a diagnostics signal.
 
+## Agent communication and progress reporting
+
+- Respond to repository work updates in Russian unless the user explicitly asks for another language.
+- Before each meaningful work stage, state what is about to be done in enough detail for the user to follow the plan.
+- At the end of each stage, state the completion percentage for that stage.
+- Keep progress notes tied to concrete actions such as reading instructions, writing tests, implementing changes, running checks, committing, and preparing the PR.
+
 ## Architecture guardrails
 
 - Keep transport, protocol, audio, diagnostics, domain state machine, and UI as separate layers.
